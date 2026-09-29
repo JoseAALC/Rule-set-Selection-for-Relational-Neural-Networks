@@ -1,0 +1,184 @@
+
+import random
+import re
+import os 
+import sys
+
+
+#choice =0 calculate
+#choice =1 calculate_f1
+if len(sys.argv)>1:
+	path = sys.argv[1]
+else:
+	print("In necessary to indicate a path")
+	quit()
+
+random.seed(1)
+NUMBER_PER_EXAMPLE =100
+
+pos_f = open(os.path.join(path,"test_pos.txt"),"r")
+neg_f = open(os.path.join(path,"test_neg.txt"),"r")
+#print(os.path.join(path,"test_pos.txt"))
+
+examples = []
+pos_examples =[]
+neg_examples = []
+pattern = r"\((.*?)\)"
+for l in pos_f:
+	match = re.search(pattern, l)
+	result = match.group(1)	
+	pos_examples.append(result)
+for l in neg_f:
+	match = re.search(pattern, l)
+	result = match.group(1)
+	neg_examples.append(result)
+
+
+neg_f.close()
+pos_f.close()
+
+examples = pos_examples + neg_examples	
+
+print(f"{len(examples)} examples processed.")
+
+
+
+grounds_per_example = {}
+for example in examples:
+	grounds_per_example[example] = []
+
+del examples
+
+ground_f = open(os.path.join(path,"OutputRW.txt"),"r")
+
+
+
+lift_grounds = {}
+
+for l in ground_f:
+	#print(l)
+	body= l.split(":-")[0].strip()[1:]
+	#print(body)
+	match = re.search(pattern, body)
+        if match == None:
+                continue
+        result = match.group(1).replace(" ","")
+
+	#generate lift string
+	create_lift= l.split(":-")[1].strip()
+	parts = create_lift.split(")")
+	parts[:] = [x for x in parts if x]
+	parts[:] = [x.split("(")[0].replace(",", "").strip() for x in parts]
+	#print(l.split(":-")[1].strip())
+	lift = ",".join(parts)
+	
+
+	#print(f"O:{l}")
+	#print(f"C:{create_lift}")
+	#print(f"(L:{lift},E:{result})")
+	
+
+	if lift in lift_grounds.keys():
+		#print(lift_grounds[lift])
+		if result in lift_grounds[lift].keys():
+			lift_grounds[lift][result].append(l)
+		else:
+			lift_grounds[lift][result] = [l]
+
+	else:
+		lift_grounds[lift] = {}
+		lift_grounds[lift][result]=[l] 
+
+	#print(lift_grounds)
+	#print()
+	#print()
+
+
+	if result in grounds_per_example:
+		grounds_per_example[result].append(l)
+	else:
+		print(f"The key: {result} was not found on examples")
+
+
+ground_f.close()
+
+
+
+
+
+
+all_grounds = []
+
+
+total = 0
+for example in grounds_per_example.keys():
+	lifts = []
+	#print(lift_grounds.keys())
+	for lift in lift_grounds.keys():
+		grounds = []
+		if example in lift_grounds[lift].keys():
+			grounds_total =0
+			grounds = []
+			total+=len(lift_grounds[lift][example])
+			for instanced_example in lift_grounds[lift][example]:
+				#print(instanced_example)
+				grounds.append(instanced_example)
+
+			#print(len(grounds))
+			if  len(grounds) >NUMBER_PER_EXAMPLE:
+				grounds =random.sample(grounds,NUMBER_PER_EXAMPLE)
+		all_grounds = all_grounds+ grounds
+
+print(total)
+print(len(all_grounds))
+
+
+
+new_ground_cont = len(all_grounds)
+
+
+
+
+
+
+
+
+
+
+print(f"New calculated lines are {new_ground_cont} from the initial lines of {total} making a reduction of {100*(1-(float)(new_ground_cont)/total):.3f}%")
+
+
+
+
+
+#BACKUP OF OutputRW.txt
+if not os.path.isfile(os.path.join(path,"BACK_OutputRW.txt")):
+	ground_f = open(os.path.join(path,"OutputRW.txt"),"r")
+	back_ground_f = open(os.path.join(path,"BACK_OutputRW.txt"),"w")
+
+	for l in ground_f:
+		back_ground_f.write(l)
+
+	ground_f.close()
+	back_ground_f.close()
+else:
+	print("BACK_OutputRW.txt already exists. Terminating the program")
+	quit()
+
+
+
+
+
+
+
+
+#MODIFIING THE OutputRW.txt
+ground_f = open(os.path.join(path,"OutputRW.txt"),"w")
+
+for ground in all_grounds:
+	ground_f.write(ground)
+
+
+ground_f.close()
+
+print("OutputRW.txt was rewrited")

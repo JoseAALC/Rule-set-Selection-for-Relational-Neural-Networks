@@ -1,0 +1,33 @@
+#check if there is any file with 0 grounds
+
+import subprocess
+import os
+import sys
+path = ""
+if len(sys.argv)<2:
+	path = "./"
+else:
+	path = sys.argv[1]
+
+
+directories = [f for f in os.listdir(path) if os.path.isdir(os.path.join(path, f))]
+directories.remove("Targets")
+directories = sorted(directories,key=lambda x: int(x))
+
+
+for d in directories:
+	new_path = os.path.join(path, d)
+	train = subprocess.run(['wc' ,'-l' ,'%s/Training/test/OutputRW.txt'%new_path], capture_output=True, text=True)
+	test = subprocess.run(['wc', '-l' , '%s/Test/test/OutputRW.txt'%new_path], capture_output=True, text=True)
+
+	train_n = int(train.stdout.strip().split(" ")[0])
+	test_n = int(test.stdout.strip().split(" ")[0])
+
+	check= train_n>0 and test_n>0
+	print(f"File: {new_path:<10} with TrainG#: {train_n:<8} TestG: {test_n:<8}  Result {check} " )
+	#print(f"{num1:>8} {num2:>8} {num3:>8}")
+	#print("File: %s with TrainG#: %d TestG: %d Result %d" %(new_path,train_n,test_n,check))
+
+
+
+
